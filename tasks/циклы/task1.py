@@ -3,3 +3,5 @@
 
 https://github.com/kolei/OAP/blob/master/articles/t3l2.md#range
 """
+a=(1,2,3)
+a.index
