@@ -1,4 +1,4 @@
-tests/*
+test/*
 .vscode/*
 TODO
 tasks/test.py
