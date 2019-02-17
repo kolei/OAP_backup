@@ -1,1 +1,4 @@
 tests/*
+.vscode/*
+TODO
+tasks/test.py
