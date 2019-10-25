@@ -143,6 +143,6 @@ unittest
 
 Внеклассное чтение: [системы контроля версий](/articles/skv.md)
 
-## [Установка Android Studio](/articles/setup_as.md)
+## [Методичка по Android Studio](/articles/setup_as.md)
 
 ## [Экзаменационные билеты](/articles/tickets.md)
