@@ -110,3 +110,10 @@ val btn_one = findViewById(R.id.btn_one)
     btn_two.setOnClickListener(this)
 ```
 
+## Проект "калькулятор"
+
+1. Установите, если еще нет, Adobe XD https://www.adobe.com/ru/products/xd.html
+
+2. Склонируйте дизайн калькулятора https://github.com/kolei/wsr-calc
+
+3. Реализуйте дизайн в Android Studio и напишите логику
