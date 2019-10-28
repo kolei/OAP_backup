@@ -51,4 +51,62 @@
         * super.onCreate(savedInstanceState) - вызов конструктора базового класса
         * setContentView(R.layout.activity_main) - инициализация activity
 
+## Добавление кнопки и обработчика события onClick для нее
+
+1. С панели перетаскиваем объект "Button" на форму
+![добавление кнопки](/img/as010.png)
+
+2. В свойствах кнопки заполняем поле id
+
+3. Переходим на закладку "MainActivity.kt" и набираем первые буквы id кнопки
+![добавление кнопки](/img/as011.png), 
+<br/>выбираем полное имя из подсказки - Android Studio автоматически добавит в импорт все объекты нашей формы, т.о. мы можем обращаться к объекту не объявляя его явно<br/>
+![добавление кнопки](/img/as012.png)
+<br/>В jave для создания ссылки на объект нужно было использовать функцию 
+```java
+val btn_one = findViewById(R.id.btn_one)
+```
+
+4. Создаем обработчик на событие "click"<br/>
+    * первый вариант: обработчик пишется прямо в месте объявления (подходит для мелких обработчиков)
+    ```kt
+    btn_one.setOnClickListener {
+        textView.text="hello"
+    }
+    ```
+
+    * второй вариант: создается функция обработчик
+
+    ```kt
+        ...
+        btn_one.setOnClickListener(this::onClick)
+    }
+    
+    fun onClick(view: View){
+        textView.text = "hello"
+    }
+    ```
+
+    * третий вариант: добавить форме интерфейс "View.OnClickListener" и реализовать событие "onClick"
+    ```kt
+    class MainActivity : AppCompatActivity(), View.OnClickListener {
+        override fun onClick(v: View?) {
+            TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
+        }
+
+        override fun onCreate(savedInstanceState: Bundle?) {
+            super.onCreate(savedInstanceState)
+            setContentView(R.layout.activity_main)
+
+            btn_one.setOnClickListener(this)
+        }
+    }
+    ```
+
+Можно один и тот же обработчик событий назначить нескольким объектам
+
+```kt
+    btn_one.setOnClickListener(this)
+    btn_two.setOnClickListener(this)
+```
 
