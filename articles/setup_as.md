@@ -130,4 +130,27 @@
 
 3. Реализуйте дизайн в Android Studio и напишите логику
 
+## Конкатенация строк
+
+Вообще строки склеиваются знаком "+", но свойство text объекта textView имеет тип CharSequence и конкатенацию не поддерживает, приходится делать двойное преобразование:
+
+```java
+btn_one.setOnClickListener{
+    // объявляем временную строковую переменную
+    var tmp = textView.text.toString()
+    textView.text = tmp+'1'
+}
+```
+
+## Удаление последнего символа
+
+Есть несколько методов для получения подстроки, например, take возвращает первые n симворлов строки:
+
+```java
+btn_bs.setOnClickListener {
+    if(textView.text.length>0)
+        textView.text = textView.text.take(textView.text.length-1)
+}
+```
+
 [содержание](/readme.md)
