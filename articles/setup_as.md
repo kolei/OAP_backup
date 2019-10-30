@@ -99,7 +99,7 @@ https://startandroid.ru/ru/uroki/vse-uroki-spiskom.html
 
     * второй вариант: создается функция обработчик
 
-    ```kt
+    ```java
     ...
     btn_one.setOnClickListener(this::onClick)
     ...
@@ -110,8 +110,7 @@ https://startandroid.ru/ru/uroki/vse-uroki-spiskom.html
     ```
 
     * третий вариант: добавить форме интерфейс "View.OnClickListener" и реализовать событие "onClick"
-
-    ```kt
+    ```java
     class MainActivity : AppCompatActivity(), View.OnClickListener {
         override fun onClick(v: View?) {
             textView.text = "hello"
@@ -125,13 +124,30 @@ https://startandroid.ru/ru/uroki/vse-uroki-spiskom.html
         }
     }
     ```
-
     Можно один и тот же обработчик событий назначить нескольким объектам
 
-    ```kt
+    ```java
         btn_one.setOnClickListener(this)
         btn_two.setOnClickListener(this)
     ```
+
+    * четвертый вариант: в коде создать функцию обработчик и в аттрибутах кнопки свойству "onClick" присвоить эту функцию:
+    ```java
+    fun onClick(v: View) {
+        var tmp = textView.text.toString()
+        // when - это аналог switch
+        when(v.id) {
+            //R.id.btn_one - идентификатор кнопки
+            R.id.btn_one -> textView.text = tmp+'1'
+            R.id.btn_bs->{
+                if(tmp.isNotEmpty()) {
+                    textView.text = tmp.take(tmp.length-1)
+                }
+            }
+        }
+    }
+    ```
+    ![](/img/as017.png)
 
 # Проект "калькулятор"
 
@@ -165,5 +181,33 @@ btn_bs.setOnClickListener {
 ```
 
 > Котлин компилируемый язык, в Android Studio не удобно проверять как будет работать какая-то функция. Для проверки можно использовать онлайн "проигрыватель" https://play.kotlinlang.org/
+
+
+# Http запросы
+
+В Kotlin-е есть встроенные функции работы с http-запросами, но стандартный код для сетевых запросов сложен, излишен и в реальном мире почти не используется. Используются библиотеки. Самые популярные: [OkHttp](https://square.github.io/okhttp/) и Retrofit.
+
+Рассмотрим работу к **OkHttp**
+
+https://square.github.io/okhttp/recipes/
+
+## Подключение библиотеки к проекту:
+   
+![](/img/as018.png)
+
+1. На закладке **Project** в **Gradle Scripts** открываем файл **build.gradle (Module: app)**
+
+2. В файле находим секцию **dependencies** (зависимости)
+
+3. Добавляем нашу библиотеку ``implementation 'com.squareup.okhttp3:okhttp:4.2.1'``. На момент написания методички последняя версия была 4.2.1, вы можете уточнить актуальную версию на сайте.
+
+4. Синхронизируйте измения (Gradle скачает обновившиеся зависимости)
+    
+5. В манифест добавляем права на доступ в интернет
+```
+<uses-permission android:name="android.permission.INTERNET" />
+```    
+
+https://square.github.io/okhttp/recipes/ - примеры синхронных и асинхронных запросов на котлине
 
 [содержание](/readme.md)
