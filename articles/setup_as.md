@@ -176,7 +176,7 @@ https://startandroid.ru/ru/uroki/vse-uroki-spiskom.html
 4. поместим в этот контейнер кнопку
 ![](/img/as021.png)  
 и установим layout_height = match_parent  
-после этого скопируем кнопку и вставим 3 копии
+после этого скопируем кнопку и вставим 3 копии  
 ![](/img/as022.png)  
 
 5. повторим пп 3-4 для всех рядов кнопок калькулятора
@@ -198,7 +198,7 @@ btn_one.setOnClickListener{
 
 ## Удаление последнего символа
 
-Есть несколько методов для получения подстроки, например, **take** возвращает первые **n** симворлов строки:
+Есть несколько методов для получения подстроки, например, **take** возвращает первые **n** символов строки:
 
 ```java
 btn_bs.setOnClickListener {
@@ -210,13 +210,21 @@ btn_bs.setOnClickListener {
 > Котлин компилируемый язык, в Android Studio не удобно проверять как будет работать какая-то функция. Для проверки можно использовать онлайн "проигрыватель" https://play.kotlinlang.org/
 
 
+## Добавление альбомной ориентации
+
+В режиме "design" кликаем кнопку "Orientation..." выбираем "Create Landscape Variation"    
+![](/img/as023.png)
+
+Система автоматически создаст Layout с альбомной ориентацией.   
+![](/img/as024.png)
+
 # Http запросы
 
 В Kotlin-е есть встроенные функции работы с http-запросами, но стандартный код для сетевых запросов сложен, излишен и в реальном мире почти не используется. Используются библиотеки. Самые популярные: [OkHttp](https://square.github.io/okhttp/) и Retrofit.
 
 Рассмотрим работу к **OkHttp**
 
-https://square.github.io/okhttp/recipes/
+https://square.github.io/okhttp/recipes/ - примеры синхронных и асинхронных запросов на котлине
 
 ## Подключение библиотеки к проекту:
    
@@ -235,6 +243,12 @@ https://square.github.io/okhttp/recipes/
 <uses-permission android:name="android.permission.INTERNET" />
 ```    
 
-https://square.github.io/okhttp/recipes/ - примеры синхронных и асинхронных запросов на котлине
+
+https://developer.android.com/training/location/retrieve-current#kotlin
+
+
+http://www.kotlincodes.com/kotlin/locationlistener-with-kotlin/
+
+implementation 'com.google.android.gms:play-services:11.6.0'
 
 [содержание](/readme.md)
