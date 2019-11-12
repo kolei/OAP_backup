@@ -7,6 +7,9 @@ https://startandroid.ru/ru/uroki/vse-uroki-spiskom.html
 3. [Знакомство с интерфейсом Android Studio](#Знакомство-с-интерфейсом-Android-Studio)
 4. [Добавление кнопки и обработчика события onClick для нее](#Добавление-кнопки-и-обработчика-события-onClick-для-нее)
 5. [Проект "калькулятор"](#Проект-"калькулятор")
+6. [Проект "Погода"](#Проект-"Погода")
+
+    * [Получение текущей локации](#Получение-текущей-локации)
 
 
 # Установка Android Studio
@@ -218,7 +221,190 @@ btn_bs.setOnClickListener {
 Система автоматически создаст Layout с альбомной ориентацией.   
 ![](/img/as024.png)
 
-# Http запросы
+> Учитывайте, что конструктор общий для всех ориентаций - при обращении к несуществующему объекту произойдет исключение. Что-бы этого не происходило, нужно либо обработчики событий для кнопок оформить отдельными функциями, либо проверять наличие объекта кнопки перед вызовом ``setOnClickListener``
+
+
+
+# Проект "Погода"
+
+Цели:
+* получить текущую локацию
+* по сети получить погоду для текущей локации
+* отобразить погоду на форме
+
+## Получение текущей локации
+
+### Стандартные средства
+
+[Тут](https://developers.google.com/android/reference/com/google/android/gms/location/package-summary) описаны стандартные интерфейсы для работы с геолокацией
+
+
+[На основе этого примера можно посмотреть как это работает](https://en.proft.me/2019/01/3/how-get-location-latitude-longitude-android-kotlin/)
+
+1. В манифест добавляем разрешения для работы с геолокацией  
+```
+<uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION"/>
+<uses-permission android:name="android.permission.ACCESS_FINE_LOCATION"/>
+```
+
+![](/img/as025.png)
+
+
+2. В build.graddle (Module: app) добавляем зависимость  
+```
+implementation 'com.google.android.gms:play-services-location:11.8.0'
+```
+
+![](/img/as026.png)
+
+
+Полный текст программы:
+
+```kt
+package com.example.wheather
+
+import android.Manifest
+import android.app.AlertDialog
+import android.content.pm.PackageManager
+import android.location.Location
+import androidx.appcompat.app.AppCompatActivity
+import android.os.Bundle
+import androidx.core.app.ActivityCompat
+import androidx.core.content.ContextCompat
+import com.google.android.gms.location.FusedLocationProviderClient
+import com.google.android.gms.location.LocationServices
+import kotlinx.android.synthetic.main.activity_main.*
+
+class MainActivity : AppCompatActivity() {
+
+    var fusedLocationClient: FusedLocationProviderClient? = null
+
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        setContentView(R.layout.activity_main)
+
+        // инициализируем объект
+        fusedLocationClient = LocationServices.
+            getFusedLocationProviderClient(this)
+
+        // запрашиваем разрешение
+        if (checkPermission(
+            Manifest.permission.ACCESS_COARSE_LOCATION,
+            Manifest.permission.ACCESS_FINE_LOCATION)) 
+        {
+            fusedLocationClient?.lastLocation?.
+                addOnSuccessListener(this,
+                    // Got last known location. In some rare
+                    // situations this can be null.
+                    {location : Location? ->
+                        // полученные координаты выводим на экран
+                        if(location == null) {
+                            textView.text = "location == null"
+                        } else location.apply {
+                            textView.text = location.toString()
+                        }
+                    })
+        }
+    }
+
+    private fun checkPermission(vararg perm:String) : Boolean {
+        val PERMISSION_ID = 42
+
+        val havePermissions = perm.toList().all {
+            ContextCompat.checkSelfPermission(this,it) ==
+                    PackageManager.PERMISSION_GRANTED
+        }
+
+        if (!havePermissions) {
+            if(perm.toList().any {
+                ActivityCompat.
+                    shouldShowRequestPermissionRationale(this, it)
+            }){
+                val dialog = AlertDialog.Builder(this)
+                    .setTitle("Permission")
+                    .setMessage("Permission needed!")
+                    .setPositiveButton("OK", {id, v ->
+                        ActivityCompat.requestPermissions(
+                            this, perm, PERMISSION_ID)
+                    })
+                    .setNegativeButton("No", {id, v -> })
+                    .create()
+                dialog.show()
+            } else {
+                ActivityCompat.requestPermissions(this, perm, PERMISSION_ID)
+            }
+            return false
+        }
+        return true
+    }
+}
+```
+
+### Сторонние библиотеки
+
+В стандартной реализации, как обычно, слишком много букв, к счастью есть [библиотека](https://github.com/BirjuVachhani/locus-android), в которой вся рутина скрыта:
+
+1. Добавляем репозиторий в build.graddle (Project)
+
+```
+maven { url 'https://jitpack.io' }
+```
+
+![](/img/as027.png)
+
+
+2. Добавляем зависимости в build.graddle (Module app)
+
+```
+implementation 'com.google.android.gms:play-services-location:17.0.0'
+implementation 'com.github.BirjuVachhani:locus-android:3.0.1'
+```
+
+![](/img/as028.png)
+
+
+3. В конструктор добавляем запрос геолокации:
+
+```kt
+Locus.getCurrentLocation(this) { result ->
+    result.location?.let {
+        tv.text = "${it.latitude}, ${it.longitude}"
+    } ?: run {
+        tv.text = result.error?.message
+    }
+}
+```
+
+
+Полный текст программы:
+
+```kt
+package com.example.locator2
+
+import androidx.appcompat.app.AppCompatActivity
+import android.os.Bundle
+import com.birjuvachhani.locus.Locus
+import kotlinx.android.synthetic.main.activity_main.*
+
+class MainActivity : AppCompatActivity() {
+
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        setContentView(R.layout.activity_main)
+
+        Locus.getCurrentLocation(this) { result ->
+            result.location?.let {
+                tv.text = "${it.latitude}, ${it.longitude}"
+            } ?: run {
+                tv.text = result.error?.message
+            }
+        }
+
+    }
+}
+```
+
+## Http запросы (не закончено)
 
 В Kotlin-е есть встроенные функции работы с http-запросами, но стандартный код для сетевых запросов сложен, излишен и в реальном мире почти не используется. Используются библиотеки. Самые популярные: [OkHttp](https://square.github.io/okhttp/) и Retrofit.
 
@@ -226,7 +412,7 @@ btn_bs.setOnClickListener {
 
 https://square.github.io/okhttp/recipes/ - примеры синхронных и асинхронных запросов на котлине
 
-## Подключение библиотеки к проекту:
+### Подключение библиотеки к проекту:
    
 ![](/img/as018.png)
 
@@ -244,11 +430,7 @@ https://square.github.io/okhttp/recipes/ - примеры синхронных �
 ```    
 
 
-https://developer.android.com/training/location/retrieve-current#kotlin
 
 
-http://www.kotlincodes.com/kotlin/locationlistener-with-kotlin/
-
-implementation 'com.google.android.gms:play-services:11.6.0'
 
 [содержание](/readme.md)
