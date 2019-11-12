@@ -445,7 +445,12 @@ Locus.getCurrentLocation(this) { result ->
 }
 ```
 
-7. Функция запроса погоды
+7. Для отображения иконки погоды используем компонент ImageView и библиотеку Glide. Для установки библиотеки:
+
+    * добавить репозиторий mavenCentral() в build.graddle (Project)
+    * добавить зависимость ``implementation 'com.github.bumptech.glide:glide:4.10.0'`` в build.graddle (Module)
+
+8. Функция запроса погоды
 
 ```kt
 // http клиент
@@ -460,7 +465,7 @@ fun getWheather(lon: Double, lat: Double) {
     client.newCall(request).enqueue(object : Callback {
 
         override fun onFailure(call: Call, e: IOException) {
-            tv.text = e.toString()
+            setText( e.toString() )
         }
 
         override fun onResponse(call: Call, response: Response) {
@@ -472,12 +477,32 @@ fun getWheather(lon: Double, lat: Double) {
                 //  println("$name: $value")
                 //}
 
-                // полученный результат выводим на экран (JSON)
-                tv.text = response.body!!.string()
+                //строку преобразуем в JSON-объект
+                var jsonObj = JSONObject(response.body!!.string())
+
+
+                // обращение к визуальному объекту из потока может вызвать исключение
+                // нужно присвоение делать в UI-потоке
+                setText( jsonObj )
             }
         }
     })
 }
+
+fun setText(t: String){
+    runOnUiThread { 
+        // достаем из ответа сервера название иконки погоды
+        val wheather = t.getJSONArray("weather")
+        val icoName = wheather.getJSONObject(0).getString("icon")
+        val icoUrl = "https://openweathermap.org/img/w/${icoName}.png"
+
+        // аналогично достаньте значение температуры и выведите на экран
+
+        // загружаем иконку и выводим ее на icon (ImageView)
+        Glide.with(this).load( icoUrl ).into( icon )
+    }
+}
+
 ```
 
 [содержание](/readme.md)
