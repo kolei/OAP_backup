@@ -489,7 +489,7 @@ fun getWheather(lon: Double, lat: Double) {
     })
 }
 
-fun setText(t: String){
+fun setText(t: JSONObject){
     runOnUiThread { 
         // достаем из ответа сервера название иконки погоды
         val wheather = t.getJSONArray("weather")
