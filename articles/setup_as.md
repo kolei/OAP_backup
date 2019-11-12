@@ -429,8 +429,55 @@ https://square.github.io/okhttp/recipes/ - примеры синхронных �
 <uses-permission android:name="android.permission.INTERNET" />
 ```    
 
+6. В функцию определения координат вместо вывода координат на экран вставаляем вызов функции, запрашивающей погоду для этих координат
 
 
+```kt
+Locus.getCurrentLocation(this) { result ->
+    result.location?.let {
+        //tv.text = "${it.latitude}, ${it.longitude}"
 
+        getWheather(it.longitude, it.latitude)
+
+    } ?: run {
+        tv.text = result.error?.message
+    }
+}
+```
+
+7. Функция запроса погоды
+
+```kt
+// http клиент
+private val client = OkHttpClient()
+
+fun getWheather(lon: Double, lat: Double) {
+    val token = "d4c9eea0d00fb43230b479793d6aa78f"
+    val url = "https://api.openweathermap.org/data/2.5/weather?lat=${lat}&lon=${lon}&units=metric&appid=${token}"
+
+    val request = Request.Builder().url(url).build()
+
+    client.newCall(request).enqueue(object : Callback {
+
+        override fun onFailure(call: Call, e: IOException) {
+            tv.text = e.toString()
+        }
+
+        override fun onResponse(call: Call, response: Response) {
+            response.use {
+                if (!response.isSuccessful) throw IOException("Unexpected code $response")
+
+                // так можно достать заголовки http-ответа
+                //for ((name, value) in response.headers) {
+                //  println("$name: $value")
+                //}
+
+                // полученный результат выводим на экран (JSON)
+                tv.text = response.body!!.string()
+            }
+        }
+    })
+}
+```
 
 [содержание](/readme.md)
