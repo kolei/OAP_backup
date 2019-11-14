@@ -592,18 +592,67 @@ for(i in 0..list.length()-1){
 
 * в дизайнере создать n-визуальных объектов с ``id`` вида ``item_0``, ``item_1`` ..``item_(n-1)``. И потом при отрисовке получать ссылку на объект по его ``id``
 
+> Для этого проекта не пригодилось, но для ознакомления оставлю  
+>```kt
+>val id = resources.
+>    getIdentifier("item_${i}", "id ", getPackageName())
+>
+>if(id>0){
+>    val cur_item = findViewById<TextView>(id)
+>
+>    cur_item.text = температура
+>}
+>```
+
+* динамически создавать визуальные объекты для каждой записи о погоде
+
+На это марианте остановлюсь подробнее:
+
+1. Добавляем на форму горизонтальный скролл и зададим id вложенному LinearLayout
+
+![](/img/as029.png)
+
+2. Добавим класс, потомок LinearLayout
+
+![](/img/as030.png)
+
+![](/img/as031.png)
+
 ```kt
-val id = resources.
-    getIdentifier("item_${i}", "id ", getPackageName())
+class CustomLayout : LinearLayout {
+    // описываем публичные аттрибуты для текста и картинки
+    var tempTextView: TextView? = null
+    var icoImageView: ImageView? = null
 
-if(id>0){
-    val cur_item = findViewById<TextView>(id)
+    // пишем конструктор
+    constructor(context: Context?): super(context){
+        this.orientation = LinearLayout.VERTICAL
+        this.minimumWidth = 150
 
-    cur_item.text = температура
+        // создаем TextView
+        tempTextView = TextView(context)
+        tempTextView!!.textAlignment = View.TEXT_ALIGNMENT_CENTER
+        this.addView(tempTextView)
+
+        // создаем ImageView
+        icoImageView = ImageView(context)
+        this.addView(icoImageView)
+
+    }
 }
-
 ```
 
-* динамически создавать визуальные объекты для каждой записи о погоде (это рассмотрим позже)
+Далее в основном коде в цикле обработки данных о погоде динамически создаем наш CustomLayout для каждого элемента и помещаем его в созданный скролл
+
+```kt
+for(i in 0..list.length()-1){
+    val item = CustomLayout(this)
+    if(item!=null) {
+        container.addView(item)
+        item.tempTextView!!.text = i.toString()
+        Glide.with(this).load(icoUrl).into(item.icoImageView!!)
+    }
+}
+```
 
 [содержание](/readme.md)
