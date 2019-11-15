@@ -693,11 +693,14 @@ private var names = arrayOf(
 
 ```kt
 // в конструкторе создаем адаптер для списка городов
+// где R.layout.city_list_item - название НОВОГО layout для элемента списка
 cityList.adapter = ArrayAdapter(
     this,
     R.layout.city_list_item, names
 )
 ```
+
+Android Studio покажет ошибку, что не знает что такое ``city_list_item`` - добавляем реализацию:
 
 ![Создание Layout для элемента списка](/img/as036.png)
 
