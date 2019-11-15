@@ -234,6 +234,7 @@ btn_bs.setOnClickListener {
 * по сети получить погоду для текущей локации
 * отобразить погоду на форме
 * создание splash-screen
+* создание дополнительных форм, переход между формами, обмен данными между формами
 
 ## Получение текущей локации
 
@@ -654,5 +655,74 @@ for(i in 0..list.length()-1){
     }
 }
 ```
+
+## Создание дополнительной формы (список городов)
+
+1. Создаем новую форму (Activity)
+
+![Создаем новую форму](/img/as032.png)
+
+![Задаем название](/img/as033.png)
+
+2. На форму кидаем вертикальный LinearLayout, в него TextView и ListView. ListView обзываем как *cityList*
+
+![Задаем название](/img/as035.png)
+
+
+3. На основную форму добавляем кнопу перехода на экран выбора города и обработчик для нее:
+
+```kt
+selectCity.setOnClickListener {
+    // при клике переходим на форму выбора города
+    startActivity( Intent(this, CityListActivity::class.java) )
+}
+```
+
+4. Класс CityListActivity
+
+Подробнее см [тут](http://developer.alexanderklimov.ru/android/listactivity.php)
+
+```kt
+// создаем массив городов
+private var names = arrayOf(
+    "Moscow",
+    "Yoshkar-Ola",
+    "Kazan"
+)
+```
+
+```kt
+// в конструкторе создаем адаптер для списка городов
+cityList.adapter = ArrayAdapter(
+    this,
+    R.layout.city_list_item, names
+)
+```
+
+![Создание Layout для элемента списка](/img/as036.png)
+
+
+```kt
+// создаем обработчик событий выбора элемента списка
+cityList.setOnItemClickListener { parent, view, position, id ->
+    val mainIntent = Intent(this, MainActivity::class.java)
+    val cityName = names[id.toInt()]
+
+    // запоминаем выбранное название города
+    mainIntent.putExtra("city_name", cityName)
+
+    // возвращаемся на основной экран (Activity)
+    startActivity( mainIntent )
+}
+```
+
+В MainActivity считываем название выбранного города
+
+```kt
+val cityName = intent.getStringExtra("city_name")
+```
+
+и делаем проверку, если город есть, то запрашиваем данные о погоде по названию города, если нет, то по старому варианту через определение координат
+
 
 [содержание](/readme.md)
