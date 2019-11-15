@@ -701,6 +701,9 @@ cityList.adapter = ArrayAdapter(
 
 ![Создание Layout для элемента списка](/img/as036.png)
 
+**Внимание!** RootElement поменять на TextView
+
+![Создание Layout для элемента списка](/img/as037.png)
 
 ```kt
 // создаем обработчик событий выбора элемента списка
