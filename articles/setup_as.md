@@ -802,6 +802,51 @@ try {
 * Авторизация на сервере, получение списка достопримечательностей
 * Построение маршрутов
 
+## Создание приложения с Google Maps
+
+Основано на этой [статье](http://developer.alexanderklimov.ru/android/google_maps.php) и [этой](https://startandroid.ru/ru/uroki/vse-uroki-spiskom/306-urok-139-google-maps-sozdanie-i-nastrojka-proekta-karta-kamera-sobytija.html)
+
+1. Создаем новое приложение, выбрав форму "Google Maps Activity"
+
+![создание приложения](/img/as038.png)
+
+Обратите внимание на "Minimum API level"
+
+![создание приложения](/img/as039.png)
+
+После создания приложения Android Studio автоматически создаст и откроет файл для генерации ключа.
+
+1. Перейдите по ссылке
+
+![создание приложения](/img/as040.png)
+
+2. Создайте новый проект
+
+![создание приложения](/img/as041.png)
+
+3. Создайте ключ API
+
+4. Полученный ключ вставьте в google_maps_api.xml (файл из которого переходили по ссылке)
+
+
+И немного поправим стандартный метод **onMapReady**
+
+```kt
+override fun onMapReady(googleMap: GoogleMap) {
+    mMap = googleMap
+
+    // координаты техникума
+    val yotc = LatLng(56.639439, 47.892384)
+
+    // к метке добавлена подпись
+    mMap.addMarker(MarkerOptions().position(yotc).title("Метка ЙОТК")
+        .snippet("Йошкар-Олинский Технологический Коледж"))
+
+    // используем камеру с масштабированием
+    mMap.moveCamera(CameraUpdateFactory.newLatLngZoom(yotc, 16F))
+}
+```
+
 ## Авторизация на сервере
 
 > Для сетевых запросов далее будем пользоваться библиотекой [Fuel](https://github.com/kittinunf/fuel). 
@@ -852,5 +897,15 @@ Fuel
 
 Приложение может не запуститься, выдав ошибку "Cleartext HTTP traffic to ... not permitted" - в последних версиях Андроида по-умолчанию запрещено работать без ssl. Для разрешения открытого траффика добавьте в манифест в секцию **application** аттрибут ``android:usesCleartextTraffic="true"``
 
+
+### Добавление своих объектов
+
+Основано на [этой](https://startandroid.ru/ru/uroki/vse-uroki-spiskom/307-urok-140-google-maps-svoi-obekty-na-karte.html) статье
+
+1. Запросите список достопримечательностей по адресу {адрес}/points
+
+2. Добавьте маркеры на карту
+
+//TODO: выбрать маркеры (кликом), выбранные маркеры выделить цветом, построить маршрут по выбранным маркерам
 
 [содержание](/readme.md)
