@@ -847,6 +847,55 @@ override fun onMapReady(googleMap: GoogleMap) {
 }
 ```
 
+### Добавление текущей позиции
+
+1. В build.graddle (app) добавляем зависимость ``implementation 'com.google.android.gms:play-services-location:17.0.0'``
+
+2. Добавляем приватные аттрибуты класса:
+
+```kt
+    private lateinit var fusedLocationClient: FusedLocationProviderClient
+    private lateinit var lastLocation: Location
+```
+
+3. В конструкторе инициализируем локатор:
+
+```kt
+    fusedLocationClient = LocationServices.getFusedLocationProviderClient(this)
+```
+
+4. В конце метода ``onMapReady`` добавить вызов метода ``setUpMap()`` и реализовать этот метод:
+
+```kt
+    private fun setUpMap() {
+        // запрашиваем разрешение
+        if (ActivityCompat.checkSelfPermission(this,
+                android.Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED) 
+        {
+            ActivityCompat.requestPermissions(this,
+                arrayOf(android.Manifest.permission.ACCESS_FINE_LOCATION), 1)
+            return
+        }
+
+        // на карте включаем слой с текущей локацией
+        mMap.isMyLocationEnabled = true
+
+        // при получении локации рисуем на карте маркер
+        fusedLocationClient.lastLocation.addOnSuccessListener(this) { location ->
+            // Got last known location. In some rare situations this can be null.
+            if (location != null) {
+                lastLocation = location
+                val currentLatLng = LatLng(location.latitude, location.longitude)
+
+                mMap.addMarker(MarkerOptions().position(currentLatLng))
+
+                mMap.animateCamera(CameraUpdateFactory.newLatLngZoom(currentLatLng, 16f))
+            }
+        }
+    }
+```
+
+
 ## Авторизация на сервере
 
 > Для сетевых запросов далее будем пользоваться библиотекой [Fuel](https://github.com/kittinunf/fuel). 
@@ -902,7 +951,7 @@ Fuel
 
 Основано на [этой](https://startandroid.ru/ru/uroki/vse-uroki-spiskom/307-urok-140-google-maps-svoi-obekty-na-karte.html) статье
 
-1. Запросите список достопримечательностей по адресу {адрес}/points
+1. Запросите список достопримечательностей по адресу http://<адрес сервера>:8080/points. Тип запроса: POST, в параметрах токен.
 
 2. Добавьте маркеры на карту
 
