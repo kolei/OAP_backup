@@ -897,33 +897,35 @@ override fun onMapReady(googleMap: GoogleMap) {
 
 ### Добавление маршрута
 
-1. В зависимости добавим пакет ``implementation 'com.google.maps.android:android-maps-utils:0.5'``
+Если интересно, можете прикрутить себе настоящий запрос к Directions API, но это API платное (хотя первый год денег не берут, но все-равно нужно привязывать карту). 
 
-2. Получаем ключ для работы с API: переходим по [ссылке](https://cloud.google.com/maps-platform/pricing/), жмем **Get Started** (на цену не обращаем внимания, первый год пользования бесплатный). Если к вашему аккаунту не привязан биллинг, то нужно привязать.
+> 1. В зависимости добавим пакет ``implementation 'com.google.maps.android:android-maps-utils:0.5'``
+>
+> 2. Получаем ключ для работы с API: переходим по [ссылке](https://cloud.google.com/maps-platform/pricing/), жмем **Get Started** (на цену не обращаем внимания, первый год пользования бесплатный). Если к вашему аккаунту не привязан биллинг, то нужно привязать.
+>
+>    * выбираем продукт (Routes)
+>
+>![выбираем продукт](/img/as043.png)
+>
+>    * выбираем проект, для которого нужен ключ. Выбирайте тот проект, который был создан для Google Maps
+>
+>![выбираем проект](/img/as044.png)
+>
+>    * включаем API
+>
+>![включаем API](/img/as045.png)
+>
+>    * копируем созданный ключ и вставляем его приватной переменной класса (вроде правильнее хранить в манифесте или ресурсах, но пока это не принципиально)
+>![включаем API](/img/as046.png)
+>
 
-    * выбираем продукт (Routes)
-![выбираем продукт](/img/as043.png)
-
-    * выбираем проект, для которого нужен ключ. Выбирайте тот проект, который был создан для Google Maps
-![выбираем проект](/img/as044.png)
-
-    * включаем API
-![включаем API](/img/as045.png)
-
-    * копируем созданный ключ и вставляем его приватной переменной класса (вроде правильнее хранить в манифесте или ресурсах, но пока это не принципиально)
-![включаем API](/img/as046.png)
+Чтобы не активировать кучу ключей, я сделал на локальном сервере проксирование этих запросов. Теперь вместо ``https://maps.googleapis.com/maps/api/directions/json?`` можно писать ``http://192.168.1.18:8080/directions?``. Ключ можно не указывать, все остальные параметры передаются как есть.
 
 3. Из текущей локации и путевых точек (список точек получаем с сервера, как описано ниже) формируем запрос маршрута (маршрут зацикленный, откуда вышли, туда и вернемся):
 
 ```kt
 try {
-    Fuel.get("""https://maps.googleapis.com/maps/api/directions/json?
-                origin=${currentLatLng.latitude},${currentLatLng.longitude}
-                &destination=${currentLatLng.latitude},${currentLatLng.longitude}
-                &waypoints=${yotcLatLon.latitude},${yotcLatLon.longitude}|${onegin.latitude},${onegin.longitude}
-                &mode=walking
-                &language=ru
-!!!             &key=тут ваш ключ""".trimMargin())
+    Fuel.get("http://192.168.1.18:8080/directions?origin=$currentLatLng.latitude},${currentLatLng.longitude}&destination=${currentLatLng.latitude},${currentLatLng.longitude}&waypoints=${yotcLatLon.latitude},${yotcLatLon.longitude}|${onegin.latitude},${onegin.longitude}&mode=walking&language=ru")
         .responseString { request, response, result ->
             when(result){
                 is Result.Failure -> 
