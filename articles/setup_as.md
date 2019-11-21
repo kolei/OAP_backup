@@ -925,7 +925,7 @@ override fun onMapReady(googleMap: GoogleMap) {
 
 ```kt
 try {
-    Fuel.get("http://192.168.1.18:8080/directions?origin=$currentLatLng.latitude},${currentLatLng.longitude}&destination=${currentLatLng.latitude},${currentLatLng.longitude}&waypoints=${yotcLatLon.latitude},${yotcLatLon.longitude}|${onegin.latitude},${onegin.longitude}&mode=walking&language=ru")
+    Fuel.get("http://192.168.1.18:8080/directions?origin=${currentLatLng.latitude},${currentLatLng.longitude}&destination=${currentLatLng.latitude},${currentLatLng.longitude}&waypoints=${yotcLatLon.latitude},${yotcLatLon.longitude}|${onegin.latitude},${onegin.longitude}&mode=walking&language=ru")
         .responseString { request, response, result ->
             when(result){
                 is Result.Failure -> 
