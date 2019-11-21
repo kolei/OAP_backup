@@ -804,7 +804,7 @@ try {
 
 ## Создание приложения с Google Maps
 
-Основано на этой [статье](http://developer.alexanderklimov.ru/android/google_maps.php) и [этой](https://startandroid.ru/ru/uroki/vse-uroki-spiskom/306-urok-139-google-maps-sozdanie-i-nastrojka-proekta-karta-kamera-sobytija.html)
+Основано на этой [статье](http://developer.alexanderklimov.ru/android/google_maps.php) и [этой](https://startandroid.ru/ru/uroki/vse-uroki-spiskom/306-urok-139-google-maps-sozdanie-i-nastrojka-proekta-karta-kamera-sobytija.html) и [этой](https://www.raywenderlich.com/230-introduction-to-google-maps-api-for-android-with-kotlin)
 
 1. Создаем новое приложение, выбрав форму "Google Maps Activity"
 
@@ -895,6 +895,115 @@ override fun onMapReady(googleMap: GoogleMap) {
     }
 ```
 
+### Добавление маршрута
+
+1. В зависимости добавим пакет ``implementation 'com.google.maps.android:android-maps-utils:0.5'``
+
+2. Получаем ключ для работы с API: переходим по [ссылке](https://cloud.google.com/maps-platform/pricing/), жмем **Get Started** (на цену не обращаем внимания, первый год пользования бесплатный). Если к вашему аккаунту не привязан биллинг, то нужно привязать.
+
+    * выбираем продукт (Routes)
+![выбираем продукт](/img/as043.png)
+
+    * выбираем проект, для которого нужен ключ. Выбирайте тот проект, который был создан для Google Maps
+![выбираем проект](/img/as044.png)
+
+    * включаем API
+![включаем API](/img/as045.png)
+
+    * копируем созданный ключ и вставляем его приватной переменной класса (вроде правильнее хранить в манифесте или ресурсах, но пока это не принципиально)
+![включаем API](/img/as046.png)
+
+3. Из текущей локации и путевых точек (список точек получаем с сервера, как описано ниже) формируем запрос маршрута (маршрут зацикленный, откуда вышли, туда и вернемся):
+
+```kt
+try {
+    Fuel.get("""https://maps.googleapis.com/maps/api/directions/json?
+                origin=${currentLatLng.latitude},${currentLatLng.longitude}
+                &destination=${currentLatLng.latitude},${currentLatLng.longitude}
+                &waypoints=${yotcLatLon.latitude},${yotcLatLon.longitude}|${onegin.latitude},${onegin.longitude}
+                &mode=walking
+                &language=ru
+!!!             &key=тут ваш ключ""".trimMargin())
+        .responseString { request, response, result ->
+            when(result){
+                is Result.Failure -> 
+                    Toast.makeText(this, result.getException().toString(), Toast.LENGTH_LONG).show()
+                is Result.Success ->
+                    try {
+                            val resp = JSONObject(result.get())
+                            val legs = resp.getJSONArray("routes").getJSONObject(0).getJSONArray("legs")
+
+                            if (resp.getString("status") != "OK")
+                                        throw Exception("status: error")
+
+                            //Линия которую будем рисовать
+                            val line = PolylineOptions()
+                            val latLngBuilder = LatLngBounds.Builder()
+
+                            for (j in 0 until legs.length()) {
+                                val steps= legs.getJSONObject(j).getJSONArray("steps")
+
+                                //Проходимся по всем точкам, добавляем их в Polyline и в LanLngBounds.Builder
+                                for (i in 0..steps.length() - 1) {
+                                    var point = LatLng(
+                                        steps.getJSONObject(i).getJSONObject("start_location").getDouble(
+                                                    "lat"
+                                                ),
+                                                steps.getJSONObject(i).getJSONObject("start_location").getDouble(
+                                                    "lng"
+                                                )
+                                            )
+                                    line.add(point)
+                                    latLngBuilder.include(point)
+
+                                    point = LatLng(
+                                        steps.getJSONObject(i).getJSONObject("end_location").getDouble(
+                                                    "lat"
+                                                ),
+                                                steps.getJSONObject(i).getJSONObject("end_location").getDouble(
+                                                    "lng"
+                                                )
+                                            )
+                                    line.add(point)
+                                    latLngBuilder.include(point)
+
+                                }
+                            }
+
+                            //Делаем линию более менее симпатичное
+                            line.width(16f).color(R.color.colorPrimary)
+
+                            //Добавляем линию на карту
+                            mMap.addPolyline(line)
+
+                            //Выставляем камеру на нужную нам позицию
+                            val latLngBounds = latLngBuilder.build()
+
+                            val track = CameraUpdateFactory.newLatLngBounds(
+                                        latLngBounds,
+                                        500,
+                                        500,
+                                        25
+                                    )//width это размер нашего экрана
+
+                            mMap.moveCamera(track)
+
+                        } catch (e: Exception){
+                                    Toast.makeText(this, e.toString(), Toast.LENGTH_LONG).show()
+                                }
+                            }
+                        }
+                } catch (e: ApiException) {
+                    e.printStackTrace()
+                    Toast.makeText(this, e.toString(), Toast.LENGTH_LONG).show()
+                } catch (e: InterruptedException) {
+                    e.printStackTrace()
+                    Toast.makeText(this, e.toString(), Toast.LENGTH_LONG).show()
+                } catch (e: IOException) {
+                    e.printStackTrace()
+                    Toast.makeText(this, e.toString(), Toast.LENGTH_LONG).show()
+                }
+```
 
 ## Авторизация на сервере
 
