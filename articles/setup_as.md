@@ -1037,6 +1037,25 @@ mMap.setOnMarkerClickListener(object : GoogleMap.OnMarkerClickListener {
     }
 ```
 
+### Добавление кнопки
+
+В дизайнере кнопка на фрагмент с картой не перетаскивается, добавить можно прямо в XML:
+
+```xml
+    <Button
+        android:id="@+id/btn_route"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="top|left"
+        android:layout_marginTop="10dp"
+        android:padding="10dp"
+        android:paddingRight="10dp"
+        android:text="Построить маршрут"
+        android:visibility="invisible" />
+```
+
+В дизайнере она опять же видна не будет, но в структуре формы появится и на экране отобразится
+
 
 ### Добавление маршрута
 
