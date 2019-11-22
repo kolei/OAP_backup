@@ -988,6 +988,35 @@ mMap.setOnMarkerClickListener(object : GoogleMap.OnMarkerClickListener {
 })
 ```
 
+То ли в API Google Maps нет методов для получения списка маркетов, то ли я не смог их найти, но в инете все хранят маркеры в отдельном массиве:
+
+```kt
+    private var marker_list =  arrayListOf<Marker>()
+
+    ...
+
+    //в функции добавления маркетов на карту мы должны добавить их в этот список
+    val marker = MarkerOptions()
+        .position(coord)
+        .title( point.getString("short") )
+        .icon(
+            BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_RED))
+
+    marker_list.add( mMap.addMarker(marker) )
+
+    ...
+
+    private fun checkMarkers(){
+       for (marker in marker_list){
+           if (marker.tag==1){
+               btn_route.isVisible = true
+               return
+           }
+       }
+       btn_route.isVisible = false
+    }
+```
+
 ### Добавление своих объектов
 
 Основано на [этой](https://startandroid.ru/ru/uroki/vse-uroki-spiskom/307-urok-140-google-maps-svoi-obekty-na-karte.html) статье
