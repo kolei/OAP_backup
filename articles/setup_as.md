@@ -1115,7 +1115,26 @@ mMap.setOnMarkerClickListener(object : GoogleMap.OnMarkerClickListener {
 Из текущей локации и выбранных точек формируем запрос маршрута (маршрут зацикленный, откуда вышли, туда и вернемся):
 
 ```kt
-Fuel.get("http://192.168.1.18:8080/directions", listOf(
+
+// очищаем предыдущий маршрут
+if(lastRoute!=null) lastRoute!!.remove()
+
+// формируем список путевых точек https://developers.google.com/maps/documentation/directions/intro#DirectionsRequests
+
+// wayponts=lat1,lon1[|latN,lonN]
+
+var waypoints = ""
+
+for (marker in marker_list){
+    if(marker.tag==1){
+        if(waypoints!="") waypoints += "|"
+            waypoints += "${marker.position.latitude},${marker.position.longitude}"
+    }
+}
+
+
+if(waypoints!=""){
+    Fuel.get("http://192.168.1.18:8080/directions", listOf(
          "origin" to "${lat},${lon}",
          "destination" to "${lat},${lon}",
          "waypoints" to waypoints,
@@ -1205,6 +1224,7 @@ Fuel.get("http://192.168.1.18:8080/directions", listOf(
                     e.printStackTrace()
                     Toast.makeText(this, e.toString(), Toast.LENGTH_LONG).show()
                 }
+}                
 ```
 
 [содержание](/readme.md)
