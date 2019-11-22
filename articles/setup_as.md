@@ -798,23 +798,94 @@ try {
 # Проект "Достопримечательности"
 
 Цели:
-* Научитсья работать с Google Maps
-* Авторизация на сервере, получение списка достопримечательностей
-* Построение маршрутов
+
+* Работа с сетью (GET, POST запросы, авторизация, получение данных)
+* Научитсья работать с Google Maps (вывод текущей позиции и создание геометок)
+* Научиться работать с *Custom View* - изображение достопримечательности с детальным описанием вместо текстовой метки
+* Построение маршрутов (по выбранным геометкам)
+
+
+Структура приложения:
+
+* **Первый экран**: заставка (в фоне авторизация на сервере и запрос геолокации). При успешной авторизации переходим на экран с картой
+
+* **Второй экран**: карта. 
+    * При переходе на экран с сервера запрашивается список достопримечательностей
+    * список достопримечательностей и текущая локация отображаются на карте
+    * по клику на достопримечательности показывать *Custom View* и помечать (или отменять отметку) для последующего запроса построения маршрута
+    * при выборе достопримечательностей показывать/скрывать кнопку *Построить маршрут*
+    * при клике на эту кнопку отправлять запрос на построение маршрута
+
+## Авторизация на сервере
+
+> Для сетевых запросов далее будем пользоваться библиотекой [Fuel](https://github.com/kittinunf/fuel). 
+
+### Установка библиотеки
+
+В зависимости приложения добавляем ``implementation 'com.github.kittinunf.fuel:fuel-android:2.2.1'`` (актуальную версию библиотеки уточняйте на сайте разработчика)
+
+> не забываем в манифесте разрешить работу с интерентом: ``<uses-permission android:name="android.permission.INTERNET"/>``
+
+В импорт добавить ``import com.github.kittinunf.result.Result`` (автоматически он не цепляется)
+
+### Примеры запросов
+
+Запросы бывают двух типов: синхронные (приложение ждет ответа от сервера, останавливая работу - такие запросы имеет смысл использовать только при авторизации, когда дальше просто нельзя двигаться) и асинхронные (запрос посылается в фоне, выполнение программы продолжается - такой режим предпочтительнее, т.к. не "замораживает" интерфейс). 
+
+В последних версиях Андроид синхронные запросы в основном потоке запрещены, так что рассматривать будем только асинхронные
+
+> Вариантов авторизации существует множество, далее рассмотрен вариант, который использовался в демо-экзамене на курсах "Мастера 5000"
+
+Алгоритм авторизации:
+
+* при любом запросе должен добавляться параметр **token**
+* если токен не найден, то вернется сообщение, что пользователь не авторизован: ``{"notice":{"answer": "user not authorized"}}``
+* для получения токена необходимо послать **post** запрос на URL ``/login`` с параметрами login и password (в качестве логина используйте ИФамилия в латинской транскрипции, т.е. Евгений колесников = EKolesnikov. Пароль любой)
+* если токен уже был получен, то сервер вернет ошибку ``{"notice":{"answer": "User is active"}}``, в этом случае нужно разлогиниться (послать запрос с теми же параметрами на URL ``/logout``). При успешной авторизации сервер вернет токен: ``{"notice": {"token":123}``
+
+
+> Адрес сервера динамический, уточняйте в начале лабораторной/практики
+
+```kt
+Fuel
+    .post(  "http://192.168.1.18:8080/login", 
+            listOf("login" to "ekolesnikov", "password" to "passw"))
+    .responseString { request, response, result ->
+        when (result) {
+            is Result.Failure -> {
+                // отображает сообщение на экране
+                Toast.makeText(applicationContext,
+                                result.getException().toString(),
+                                Toast.LENGTH_LONG).show()
+            }
+            is Result.Success -> {
+                // тут реализуете разбор полученного ответа
+            }
+        }
+    }
+```
+
+В параметрах метода **.post** передаются *URL* сервера и список параметров (логин и пароль). Метод **.responseString** срабатывает при получении ответа от сервера.
+
+Приложение может не запуститься, выдав ошибку "Cleartext HTTP traffic to ... not permitted" - в последних версиях Андроида по-умолчанию запрещено работать без ssl. Для разрешения открытого траффика добавьте в манифест в секцию **application** аттрибут ``android:usesCleartextTraffic="true"``
+
+> Как я писал выше, способов авторизации может быть несколько, в частности **Fuel** поддерживает базовую авторизацию (про нее мы говорили в прошлом году):
+>
+>```kt
+>Fuel.get("https://httpbin.org/basic-auth/$user/$password")
+>    .authentication()
+>    .basic(username, password)
+>    .response { result -> }
+>```
+
 
 ## Создание приложения с Google Maps
 
 Основано на этой [статье](http://developer.alexanderklimov.ru/android/google_maps.php) и [этой](https://startandroid.ru/ru/uroki/vse-uroki-spiskom/306-urok-139-google-maps-sozdanie-i-nastrojka-proekta-karta-kamera-sobytija.html) и [этой](https://www.raywenderlich.com/230-introduction-to-google-maps-api-for-android-with-kotlin)
 
-1. Создаем новое приложение, выбрав форму "Google Maps Activity"
+1. Добавляем в приложение новое Activitu, выбрав форму "Google Maps Activity"
 
-![создание приложения](/img/as038.png)
-
-Обратите внимание на "Minimum API level"
-
-![создание приложения](/img/as039.png)
-
-После создания приложения Android Studio автоматически создаст и откроет файл для генерации ключа.
+После создания Activity Android Studio автоматически создаст и откроет файл для генерации ключа.
 
 1. Перейдите по ссылке
 
@@ -854,50 +925,122 @@ override fun onMapReady(googleMap: GoogleMap) {
 2. Добавляем приватные аттрибуты класса:
 
 ```kt
-    private lateinit var fusedLocationClient: FusedLocationProviderClient
-    private lateinit var lastLocation: Location
+    private var lat: Double = 0.0
+    private var lon: Double = 0.0
 ```
 
-3. В конструкторе инициализируем локатор:
+3. В конструкторе инициализируем локатор (зависимости для локатора см. выше, мы его использовали в проекте **Погода**):
 
 ```kt
-    fusedLocationClient = LocationServices.getFusedLocationProviderClient(this)
+Locus.getCurrentLocation(this) { result ->
+    result.location?.let {
+        lat = it.latitude
+        lon = it.longitude
+
+        // тут можно вызвать функцию отображения текущей геолокации
+
+    } ?: run {
+        error = "${error}${result.error?.message}\n"
+    }
+}
 ```
 
-4. В конце метода ``onMapReady`` добавить вызов метода ``setUpMap()`` и реализовать этот метод:
+Включение слоя с текущей геолокацией:
 
 ```kt
-    private fun setUpMap() {
-        // запрашиваем разрешение
-        if (ActivityCompat.checkSelfPermission(this,
-                android.Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED) 
-        {
-            ActivityCompat.requestPermissions(this,
-                arrayOf(android.Manifest.permission.ACCESS_FINE_LOCATION), 1)
-            return
-        }
+// на карте включаем слой с текущей локацией
+mMap.isMyLocationEnabled = true
 
-        // на карте включаем слой с текущей локацией
-        mMap.isMyLocationEnabled = true
+currentLatLng = LatLng(lat, lon)
+mMap.animateCamera(CameraUpdateFactory.newLatLngZoom(currentLatLng, 14f))
+```
 
-        // при получении локации рисуем на карте маркер
-        fusedLocationClient.lastLocation.addOnSuccessListener(this) { location ->
-            // Got last known location. In some rare situations this can be null.
-            if (location != null) {
-                lastLocation = location
-                val currentLatLng = LatLng(location.latitude, location.longitude)
+4. В методе ``onMapReady`` запрашиваем список достопримечательностей (можно и в конструкторе, но пока карты нет - нет смысла в этих данных)
 
-                mMap.addMarker(MarkerOptions().position(currentLatLng))
+```kt
+Fuel.post("http://192.168.1.18:8080/points",
+    listOf("token" to token))
+    .responseString{request, response, result ->
 
-                mMap.animateCamera(CameraUpdateFactory.newLatLngZoom(currentLatLng, 16f))
-            }
-        }
+        // тут разбираем ответ сервера
+
     }
 ```
 
+В этом же методе можно прикрутить **слушателя** на событие клика по геометкам (по клику мы меняем цвет маркера и показываем/скрываем кнопку расчета маршрута):
+
+```kt
+mMap.setOnMarkerClickListener(object : GoogleMap.OnMarkerClickListener {
+    override fun onMarkerClick(marker: Marker): Boolean {
+        if(marker.tag==0) {
+            marker.tag = 1
+            marker.setIcon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_GREEN))
+        } else {
+            marker.tag = 0
+            marker.setIcon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_RED))
+        }
+
+        // в этой функции показываем/скрываем кнопку Расчитать маршрут
+        checkMarkers()
+
+        return false
+    }
+})
+```
+
+### Добавление своих объектов
+
+Основано на [этой](https://startandroid.ru/ru/uroki/vse-uroki-spiskom/307-urok-140-google-maps-svoi-obekty-na-karte.html) статье
+
+1. Запросите список достопримечательностей по адресу http://<адрес сервера>:8080/points. Тип запроса: POST, в параметрах токен.
+
+2. Добавьте маркеры на карту
+
+```kt
+    private fun getPoints(){
+        Fuel.post("http://192.168.1.18:8080/points",
+            listOf("token" to token))
+            .responseString{request, response, result ->
+                when (result) {
+                    is Result.Failure ->
+                        Toast.makeText(applicationContext,
+                            "Get points failure: ${result.getException()}",
+                            Toast.LENGTH_LONG).show()
+                    is Result.Success ->
+                        try{
+                            val jsonResp = JSONObject(result.get())
+                            if (jsonResp.has("status") && jsonResp.getString("status")=="OK"){
+                                // добавляем точки на карту
+                                val points = jsonResp.getJSONArray("points")
+                                for (i in 0 until points.length()){
+                                    val point = points.getJSONObject(i)
+
+                                    val coord = LatLng(point.getDouble("lat"), point.getDouble("lon"))
+
+                                    val marker = MarkerOptions()
+                                        .position(coord)
+                                        .title( point.getString("short") )
+                                        .icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_RED))
+
+                                    marker_list.add( mMap.addMarker(marker) )
+                                }
+                            }
+                            else
+                                throw Exception("Не верный формат ответа сервера или ошибка")
+                        }catch(e: Exception){
+                            Toast.makeText(applicationContext,
+                                "Get points failure: ${e.message}",
+                                Toast.LENGTH_LONG).show()
+                        }
+                }
+            }
+    }
+```
+
+
 ### Добавление маршрута
 
-Если интересно, можете прикрутить себе настоящий запрос к Directions API, но это API платное (хотя первый год денег не берут, но все-равно нужно привязывать карту). 
+Если интересно, можете прикрутить себе настоящий запрос к Directions API, но это API платное (хотя первый год денег не берут, но все-равно нужно привязывать карту). Но можете пропустить комментарий
 
 > 1. В зависимости добавим пакет ``implementation 'com.google.maps.android:android-maps-utils:0.5'``
 >
@@ -919,76 +1062,85 @@ override fun onMapReady(googleMap: GoogleMap) {
 >![включаем API](/img/as046.png)
 >
 
-Чтобы не активировать кучу ключей, я сделал на локальном сервере проксирование этих запросов. Теперь вместо ``https://maps.googleapis.com/maps/api/directions/json?`` можно писать ``http://192.168.1.18:8080/directions?``. Ключ можно не указывать, все остальные параметры передаются как есть.
+Чтобы не активировать кучу ключей, я сделал на локальном сервере проксирование этих запросов. Теперь вместо ``https://maps.googleapis.com/maps/api/directions/json?`` можно писать ``http://192.168.1.18:8080/directions?``. Ключ можно не указывать, все остальные параметры передаются как есть (не забываем добавить **token**).
 
-3. Из текущей локации и путевых точек (список точек получаем с сервера, как описано ниже) формируем запрос маршрута (маршрут зацикленный, откуда вышли, туда и вернемся):
+Из текущей локации и выбранных точек формируем запрос маршрута (маршрут зацикленный, откуда вышли, туда и вернемся):
 
 ```kt
-try {
-    Fuel.get("http://192.168.1.18:8080/directions?origin=${currentLatLng.latitude},${currentLatLng.longitude}&destination=${currentLatLng.latitude},${currentLatLng.longitude}&waypoints=${yotcLatLon.latitude},${yotcLatLon.longitude}|${onegin.latitude},${onegin.longitude}&mode=walking&language=ru")
-        .responseString { request, response, result ->
+Fuel.get("http://192.168.1.18:8080/directions", listOf(
+         "origin" to "${lat},${lon}",
+         "destination" to "${lat},${lon}",
+         "waypoints" to waypoints,
+         "mode" to "walking",
+         "language" to "ru",
+         "token" to token))
+    .responseString { request, response, result ->
             when(result){
                 is Result.Failure -> 
                     Toast.makeText(this, result.getException().toString(), Toast.LENGTH_LONG).show()
                 is Result.Success ->
                     try {
-                            val resp = JSONObject(result.get())
-                            val legs = resp.getJSONArray("routes").getJSONObject(0).getJSONArray("legs")
+                                val resp = JSONObject(result.get())
 
-                            if (resp.getString("status") != "OK")
-                                        throw Exception("status: error")
+                                if(resp.has("error_message"))
+                                    throw Exception(resp.getString("error_message"))
 
-                            //Линия которую будем рисовать
-                            val line = PolylineOptions()
-                            val latLngBuilder = LatLngBounds.Builder()
+                                val legs = resp.getJSONArray("routes").getJSONObject(0).getJSONArray("legs")
 
-                            for (j in 0 until legs.length()) {
-                                val steps= legs.getJSONObject(j).getJSONArray("steps")
+                                if (resp.getString("status") != "OK")
+                                    throw Exception("status: error")
 
-                                //Проходимся по всем точкам, добавляем их в Polyline и в LanLngBounds.Builder
-                                for (i in 0..steps.length() - 1) {
-                                    var point = LatLng(
-                                        steps.getJSONObject(i).getJSONObject("start_location").getDouble(
-                                                    "lat"
-                                                ),
-                                                steps.getJSONObject(i).getJSONObject("start_location").getDouble(
-                                                    "lng"
-                                                )
+                                //Линия которую будем рисовать
+                                val line = PolylineOptions()
+                                val latLngBuilder = LatLngBounds.Builder()
+
+                                for (j in 0 until legs.length()) {
+                                    val steps= legs.getJSONObject(j).getJSONArray("steps")
+
+                                    //Проходимся по всем точкам, добавляем их в Polyline и в LanLngBounds.Builder
+                                    for (i in 0 until steps.length()) {
+                                        var point = LatLng(
+                                            steps.getJSONObject(i).getJSONObject("start_location").getDouble(
+                                                "lat"
+                                            ),
+                                            steps.getJSONObject(i).getJSONObject("start_location").getDouble(
+                                                "lng"
                                             )
-                                    line.add(point)
-                                    latLngBuilder.include(point)
+                                        )
+                                        line.add(point)
+                                        latLngBuilder.include(point)
 
-                                    point = LatLng(
-                                        steps.getJSONObject(i).getJSONObject("end_location").getDouble(
-                                                    "lat"
-                                                ),
-                                                steps.getJSONObject(i).getJSONObject("end_location").getDouble(
-                                                    "lng"
-                                                )
+                                        point = LatLng(
+                                            steps.getJSONObject(i).getJSONObject("end_location").getDouble(
+                                                "lat"
+                                            ),
+                                            steps.getJSONObject(i).getJSONObject("end_location").getDouble(
+                                                "lng"
                                             )
-                                    line.add(point)
-                                    latLngBuilder.include(point)
+                                        )
+                                        line.add(point)
+                                        latLngBuilder.include(point)
 
+                                    }
                                 }
-                            }
 
-                            //Делаем линию более менее симпатичное
-                            line.width(16f).color(R.color.colorPrimary)
+                                //Делаем линию более менее симпатичное
+                                line.width(16f).color(R.color.colorPrimary)
 
-                            //Добавляем линию на карту
-                            mMap.addPolyline(line)
+                                //Добавляем линию на карту
+                                lastRoute = mMap.addPolyline(line)
 
-                            //Выставляем камеру на нужную нам позицию
-                            val latLngBounds = latLngBuilder.build()
+                                //Выставляем камеру на нужную нам позицию
+                                val latLngBounds = latLngBuilder.build()
 
-                            val track = CameraUpdateFactory.newLatLngBounds(
-                                        latLngBounds,
-                                        500,
-                                        500,
-                                        25
-                                    )//width это размер нашего экрана
+                                val track = CameraUpdateFactory.newLatLngBounds(
+                                    latLngBounds,
+                                    500,
+                                    500,
+                                    25
+                                )//width это размер нашего экрана
 
-                            mMap.moveCamera(track)
+                                mMap.moveCamera(track)
 
                         } catch (e: Exception){
                                     Toast.makeText(this, e.toString(), Toast.LENGTH_LONG).show()
@@ -1006,66 +1158,5 @@ try {
                     Toast.makeText(this, e.toString(), Toast.LENGTH_LONG).show()
                 }
 ```
-
-## Авторизация на сервере
-
-> Для сетевых запросов далее будем пользоваться библиотекой [Fuel](https://github.com/kittinunf/fuel). 
-
-### Установка библиотеки
-
-В зависимости приложения добавляем ``implementation 'com.github.kittinunf.fuel:fuel-android:2.2.1'`` (актуальную версию библиотеки уточняйте на сайте разработчика)
-
-> не забываем в манифесте разрешить работу с интерентом: ``<uses-permission android:name="android.permission.INTERNET"/>``
-
-В импорт добавить ``import com.github.kittinunf.result.Result`` (автоматически он не цепляется)
-
-### Примеры запросов
-
-Запросы бывают двух типов: синхронные (приложение ждет ответа от сервера, останавливая работу - такие запросы имеет смысл использовать только при авторизации, когда дальше просто нельзя двигаться) и асинхронные (запрос посылается в фоне, выполнение программы продолжается - такой режим предпочтительнее, т.к. не "замораживает" интерфейс). 
-
-В последних версиях Андроид синхронные запросы в основном потоке запрещены, так что рассматривать будем только асинхронные
-
-> Вариантов авторизации существует множество, далее рассмотрен вариант, который использовался в демо-экзамене на курсах "Мастера 5000"
-
-Алгоритм авторизации:
-
-* при любом запросе должен добавляться параметр **token**
-* если токен не найден, то вернется сообщение, что пользователь не авторизован: ``{"notice":{"answer": "user not authorized"}}``
-* для получения токена необходимо послать **post** запрос на URL ``/login`` с параметрами login и password (в качестве логина используйте ИФамилия в латинской транскрипции, т.е. Евгений колесников = EKolesnikov. Пароль любой)
-* если токен уже был получен, то сервер вернет ошибку ``{"notice":{"answer": "User is active"}}``, в этом случае нужно разлогиниться (послать запрос с теми же параметрами на URL ``/logout``). При успешной авторизации сервер вернет токен: ``{"notice": {"token":123}``
-
-
-> Адрес сервера динамический, уточняйте в начале лабораторной/практики
-
-```kt
-Fuel
-    .post(  "http://192.168.1.18:8080/login", 
-            listOf("login" to "ekolesnikov", "password" to "passw"))
-    .responseString { request, response, result ->
-        when (result) {
-            is Result.Failure -> {
-                tv.text = "Failure: ${result.getException().toString()}"
-            }
-            is Result.Success -> {
-                tv.text = "Success: ${result.get().toString()}"
-            }
-        }
-    }
-```
-
-В параметрах метода **.post** передаются *URL* сервера и список параметров (логин и пароль). Метод **.responseString** срабатывает при получении ответа от сервера.
-
-Приложение может не запуститься, выдав ошибку "Cleartext HTTP traffic to ... not permitted" - в последних версиях Андроида по-умолчанию запрещено работать без ssl. Для разрешения открытого траффика добавьте в манифест в секцию **application** аттрибут ``android:usesCleartextTraffic="true"``
-
-
-### Добавление своих объектов
-
-Основано на [этой](https://startandroid.ru/ru/uroki/vse-uroki-spiskom/307-urok-140-google-maps-svoi-obekty-na-karte.html) статье
-
-1. Запросите список достопримечательностей по адресу http://<адрес сервера>:8080/points. Тип запроса: POST, в параметрах токен.
-
-2. Добавьте маркеры на карту
-
-//TODO: выбрать маркеры (кликом), выбранные маркеры выделить цветом, построить маршрут по выбранным маркерам
 
 [содержание](/readme.md)
