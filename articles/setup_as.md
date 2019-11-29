@@ -1227,4 +1227,140 @@ if(waypoints!=""){
 }                
 ```
 
+### Отображение пользовательского экрана информации о маркере
+
+Информационное окно маркера отображает canvas (фактически скриншот формы), поэтому при отложенной загрузке картинок из интернета приходится извращаться - ловить завершение загрузки ресурса и снова показывать информационное окно.
+
+1. В ``res\layout`` добавить шаблон для окна ``custom_infowindow.xml``
+
+```xml
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="200dp"
+    android:layout_height="wrap_content"
+    android:orientation="vertical">
+
+    <ImageView
+        android:id="@+id/image"
+        android:layout_width="match_parent"
+        android:layout_height="200dp"
+        android:maxWidth="200dp" />
+
+    <TextView
+        android:id="@+id/tv"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="10dp"
+        android:text="Custom Info layout textview"
+        android:textColor="@color/colorAccent"
+        android:textSize="20sp" />
+
+</LinearLayout>
+```
+
+2. В функцию ``onMapReady`` добавляем строчку ``mMap.setInfoWindowAdapter( CustomInfoWindowAdapter() )`` - функция setInfoWindowAdapter задает пользовательский класс для отрисовки информационного окна
+
+3. Делаем класс, для хранения урла картинки и описания для маркера
+
+```kt
+    private var marker_list =  arrayListOf<MyMarker>()
+
+    ...
+
+    internal inner class MyMarker {
+        var marker: Marker
+        var url: String
+        var description: String
+
+        constructor(_marker: Marker, _url: String, _desc: String){
+            marker = _marker
+            url = _url
+            description = _desc
+        }
+    }
+```    
+
+и при создании маркера заполняем эти параметры
+
+```kt
+    val mymarker = MyMarker(mMap.addMarker(marker) ,
+                            point.getString("img"),
+                            point.getString("description"))
+
+    marker_list.add( mymarker )
+```
+
+3. Реализуем класс ``CustomInfoWindowAdapter`` (объявляем внутренний класс прямо внутри класса активити) наследник ``GoogleMap.InfoWindowAdapter``
+
+> Нашел примеры для загрузки картинок с callback-ом с использованием библиотеки Picasso
+> ``implementation 'com.squareup.picasso:picasso:2.71828'``
+
+```kt
+internal inner class CustomInfoWindowAdapter : GoogleMap.InfoWindowAdapter {
+        private var lastUrl = ""
+
+        // функция возвращает урл для картинки и описание для указанного маркера
+        fun getImgUrl4Marker(marker: Marker): Pair<String?,String?>{
+            for (i in 0 until marker_list.size){
+                if(marker_list[i].marker==marker)
+                    return Pair("http://192.168.1.18:8080/img/${marker_list[i].url}",
+                                marker_list[i].description)
+            }
+            return Pair(null,null)
+        }
+
+        // абстрактная функция класса InfoWindowAdapter - должна быть реализована в потомках
+        override fun getInfoWindow(marker: Marker): View? {
+            //тут менять только если меняется форма окна (круглое или облачко...)
+            return null
+        }
+
+        // в этой функции реализуется отрисовка контента, т.е. нашей формы
+        override fun getInfoContents(marker: Marker): View? {
+            // извлекаем кастомный layout
+            val inflater = applicationContext.getSystemService(Context.LAYOUT_INFLATER_SERVICE) as LayoutInflater
+            val view = inflater.inflate(R.layout.custom_infowindow, null)
+
+            // получаем урл и описание маркера
+            val (imgUrl, desc) = getImgUrl4Marker(marker)
+
+            if(desc!=null) view.tv.text = desc
+
+            if(imgUrl!=null) {
+                // Picasso кэширует картинки
+                if (lastUrl == imgUrl) {
+                    Picasso.get().load(imgUrl).into(view.image)
+                } else {
+                    // если новая картинка, то загружаем картинку с callback функцией
+                    lastUrl = imgUrl
+                    Picasso.get().load(imgUrl).into(view.image, InfoWindowRefresher(marker))
+                }
+            }
+            return view
+        }
+    }
+```
+
+4. Реализуем класс InfoWindowRefresher
+
+```kt
+    internal inner class InfoWindowRefresher : Callback {
+        private lateinit var markerToRefresh: Marker
+
+        // в конструкторе запоминаем маркер
+        constructor(marker: Marker) {
+            markerToRefresh = marker
+        }
+
+        override fun onError(e: Exception?) {}
+
+        // по готовности ресурса перерисовываем информационное окно маркера
+        override fun onSuccess() {
+            markerToRefresh.showInfoWindow()
+        }
+    }
+```
+
+
+
 [содержание](/readme.md)
