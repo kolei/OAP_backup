@@ -1279,6 +1279,7 @@ if(waypoints!=""){
         var marker: Marker
         var url: String
         var description: String
+        var downloaded = false
 
         constructor(_marker: Marker, _url: String, _desc: String){
             marker = _marker
@@ -1305,16 +1306,14 @@ if(waypoints!=""){
 
 ```kt
 internal inner class CustomInfoWindowAdapter : GoogleMap.InfoWindowAdapter {
-        private var lastUrl = ""
-
-        // функция возвращает урл для картинки и описание для указанного маркера
-        fun getImgUrl4Marker(marker: Marker): Pair<String?,String?>{
+        fun getImgUrl4Marker(marker: Marker): Triple<String?,String?,Boolean?>{
             for (i in 0 until marker_list.size){
                 if(marker_list[i].marker==marker)
-                    return Pair("http://192.168.1.18:8080/img/${marker_list[i].url}",
-                                marker_list[i].description)
+                    return Triple("$attr_URL/img/${marker_list[i].url}",
+                                marker_list[i].description,
+                                marker_list[i].downloaded)
             }
-            return Pair(null,null)
+            return Triple(null,null,null)
         }
 
         // абстрактная функция класса InfoWindowAdapter - должна быть реализована в потомках
@@ -1332,15 +1331,14 @@ internal inner class CustomInfoWindowAdapter : GoogleMap.InfoWindowAdapter {
             // получаем урл и описание маркера
             val (imgUrl, desc) = getImgUrl4Marker(marker)
 
-            if(desc!=null) view.tv.text = desc
+            val (imgUrl, desc, downloaded) = getImgUrl4Marker(marker)
 
             if(imgUrl!=null) {
-                // Picasso кэширует картинки
-                if (lastUrl == imgUrl) {
+                // Picasso кэширует картинки, если картинка уже была загружена, то callback не нужен
+                if (downloaded!!) {
                     Picasso.get().load(imgUrl).into(view.image)
                 } else {
                     // если новая картинка, то загружаем картинку с callback функцией
-                    lastUrl = imgUrl
                     Picasso.get().load(imgUrl).into(view.image, InfoWindowRefresher(marker))
                 }
             }
@@ -1364,6 +1362,12 @@ internal inner class CustomInfoWindowAdapter : GoogleMap.InfoWindowAdapter {
 
         // по готовности ресурса перерисовываем информационное окно маркера
         override fun onSuccess() {
+            for (i in 0 until marker_list.size){
+                if(marker_list[i].marker==markerToRefresh){
+                    marker_list[i].downloaded = true
+                    break
+                }
+            }
             markerToRefresh.showInfoWindow()
         }
     }
