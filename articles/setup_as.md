@@ -17,7 +17,10 @@ https://startandroid.ru/ru/uroki/vse-uroki-spiskom.html
     * [Создание дополнительной формы (список городов)](#Создание-дополнительной-формы-список-городов)
 
 7. [Проект "Достопримечательности"](#Проект-Достопримечательности)
+    * [Авторизация на сервере](#Авторизация-на-сервере)
+    * [Создание приложения с Google Maps](#Создание-приложения-с-Google-Maps)
 
+8. [Тестовый локальный сервер](#Тестовый-локальный-сервер)
 
 # Установка Android Studio
 
@@ -1233,7 +1236,7 @@ if(waypoints!=""){
 
 1. В ``res\layout`` добавить шаблон для окна ``custom_infowindow.xml`` (кликаем правой кнопкой по папке layout и создаем Layout resource file)
 
-![](../img/as047.png)
+![](/img/as047.png)
 
 Примерное содержимое: ImageView и TextView
 
@@ -1366,6 +1369,230 @@ internal inner class CustomInfoWindowAdapter : GoogleMap.InfoWindowAdapter {
     }
 ```
 
+# Тестовый локальный сервер
 
+При работе в команде часто бывает, что код приложения уже более менее готов (можно отдавать тестерам), а сервера еще нет. Рассмотрим тестовый сервер, который можно быстро накидать на коленке для проверки API:
+
+> Пока написал на том, на чем умею - node.js. В перспективе перепишу на котлин
+
+1. Установите node.js (с официального сайта, все настройки по-умолчанию)
+
+2. Создайте каталог для сервера и выполните команду (в командной строке) ``npm init`` (на все вопросы жмите Enter). NPM - это менеджер пакетов, команда **init** создаст файл package.json - в нем хранятся зависимости, название главного файла проекта и т.п.
+
+3. В каталоге с проектом выполните команды:
+
+``npm install express --save``
+
+и 
+
+``npm install request-promise --save``
+
+Менеджер пакетов установит пакеты ``express`` (http-сервер) и ``request-promise`` (http-клиент), ключ ``--save`` запишет эти зависимости в файл проекта
+
+2. Создайте файл ``index.js`` (или то название, которое вы дали главному файлу проекта). Код сервера с комментариями:
+
+```js
+// директива интерпретатору "строгий режим"
+'use strict';
+
+// импортируем библиотеки
+const   express = require('express'),
+        request = require('request-promise');
+
+// создаем массив пользователей и массив достопримечательностей (достопримечательности можете добавить свои)
+var logged_users = [],
+    points = [
+        {"lat":56.63676, "lon":47.888929, "short":"Вечный огонь", "description":"Описание объекта Вечный огонь", "img":"fire.jpg"},
+        {"lat":56.631275, "lon":47.888787, "short":"Йошкин кот", "description":"Описание объекта Йошкин кот", "img":"cat.jpg"},
+        {"lat":56.631554, "lon":47.899335, "short":"Пушкин и Онегин", "description":"Описание объекта Пушкин и Онегин", "img":"onegin.jpg"},
+        {"lat":56.633858, "lon":47.900887, "short":"Простая еда", "description":"Описание объекта Простая еда", "img":"jumanji.jpg"}
+    ];
+
+//добавляю к консольному выводу дату и время
+function console_log(fmt, ...aparams){
+    fmt = (new Date()).toJSON().substr(0, 19)+' '+fmt;
+    console.log(fmt, ...aparams);
+}
+
+// генерирую случайное число для токена
+function getToken(){
+    return Math.ceil( Math.random()*9999999 )+1;
+}
+
+// поиск пользователя в массиве по логину/паролю
+function getLoggedUser(login, password){
+    for (let index = 0; index < logged_users.length; index++) {
+        if(logged_users[index].login == login && logged_users[index].password==password){
+            return index;
+        }
+    }
+    return null;
+}
+
+// поиск пользователя по токену
+function getUserByToken(token){
+    for (let index = 0; index < logged_users.length; index++) {
+        if(logged_users[index].token == token){
+            return index;
+        }
+    }
+    return null;
+}
+
+// проверка пользователя при логине
+function checkUser(login, password){
+    let index = getLoggedUser(login, password);
+
+    if(index==null){
+        // новый юзер
+        let newUser = {login, password, token: getToken()};
+        console_log("Новый пользователь: login=%s, token=%s", login, newUser.token);
+
+        logged_users.push(newUser);
+        return newUser.token;
+    }else{
+        if(logged_users[index].token==0) {
+            //токена нет - генерим и возвращаем
+            logged_users[index].token = getToken();
+            console_log("Успешная авторизация: login=%s, token=%s", login, logged_users[index].token);
+            return logged_users[index].token;
+        }
+        else {
+            console_log("Пользователь уже авторизован: login=%s", login);
+            throw new Error("User is active");
+        }
+
+    }
+}
+
+// создание экземпляра http-сервера
+var app = express();
+
+// метод .use задает команды, которые будут выполнены до разбора GET/POST команд
+
+// декодирует параметры запроса
+app.use( express.urlencoded() );
+
+// содержимое каталога img раздается статически по урлу /img/
+app.use('/img', express.static('img') );
+
+// логгирую все входящие запросы
+app.use((req, res, next)=>{
+    console_log('[express] %s request from %s, body: %s', req.path, req.ip, JSON.stringify(req.body));
+    next();
+});
+
+// POST запрос "логин"
+app.post('/login', (req,res)=>{
+    try {
+        // проверяем параметры запроса
+        if(req.body.login==undefined) throw new Error("В параметрах нет аттрибута login");
+        if(req.body.password==undefined) throw new Error("В параметрах нет аттрибута password");
+
+        // проверяем пользователя
+        let token = checkUser(req.body.login, req.body.password);
+
+        // если все нормально - возвращаем токен
+        res.json({notice: {token}});
+        
+    } catch (error) {
+        // при ошибке возвращаем текст ошибки
+        res.json({notice:{answer: error.message}});
+    }
+
+    // метод .end закрывает соединение
+    res.end();
+});
+
+// POST запрос "logout"
+app.post('/logout', (req,res)=>{
+    try {
+        if(req.body.login==undefined) throw new Error("В параметрах нет аттрибута login");
+        if(req.body.password==undefined) throw new Error("В параметрах нет аттрибута password");
+
+        let index = getLoggedUser(req.body.login, req.body.password);
+        if(index==null) throw new Error("пользователь не найден");
+        else logged_users[index].token = 0;
+
+        res.json({notice: {text: "user logout"}});
+    } catch (error) {
+        res.json({notice:{answer: error.message}});
+    }
+    res.end();
+});
+
+// POST запрос списка достопримечательностей
+app.post('/points', (req, res)=>{
+    try {
+        if(req.body.token==undefined) throw new Error("В параметрах нет аттрибута token");
+
+        let userIndex = getUserByToken(req.body.token);
+
+        if(userIndex==null) throw new Error("Пользователь с таким токеном не найден");
+
+        // в ответ пишем массив достопримечательностей
+        res.json( {status: "OK", points} );
+    } catch (error) {
+        res.json({notice:{answer: error.message}});
+    }
+    res.end();
+});
+
+// обработка запроса GET /directions - проксирование запроса расчета маршрута
+app.get('/directions', (req,res)=>{
+    try {
+        if(req.query.token==undefined) throw new Error("В параметрах нет аттрибута token");
+
+        let userIndex = getUserByToken(req.query.token);
+
+        if(userIndex==null) throw new Error("Пользователь с таким токеном не найден");
+
+        let url = "";
+
+        // все входящие параметры, кроме токена, передаем дальше
+        Object.keys(req.query).forEach(function(key) {
+            if(key!="token"){
+                if(url=="") url = "https://maps.googleapis.com/maps/api/directions/json?";
+                else url += '&';
+                url+=key+'='+req.query[key];
+            }
+        });
+
+        url += '&key=<тут должен быть ключ>';
+
+        console_log("Directions redirect: %s", url);
+
+        // http-запрос
+        request({
+            method: 'GET',
+            uri: url,
+            json: true
+        }).then(function (response) {
+            // Запрос был успешным, используйте объект ответа как хотите
+            console_log( JSON.stringify(response) );
+            res.json( response );
+            res.end();
+        }).catch(function (err) {
+            // Произошло что-то плохое, обработка ошибки
+            let ans = {notice: {answer: err}}
+            console_log( JSON.stringify(ans) );
+            res.json(and);
+            res.end();
+        });
+    } catch (error) {
+        let ans = {notice: {answer: error.message}}
+        console_log( JSON.stringify(ans) );
+        res.json( ans );
+        res.end();
+    }
+});
+
+// запуск сервера на порту 8080
+app.listen(8080, '0.0.0.0', ()=>{
+    console_log('HTTP сервер успешно запущен на порту 8080');
+}).on('error', (err)=>{
+    console_log('ошибка запуска HTTP сервера: %s', err)
+});
+```
 
 [содержание](/readme.md)
